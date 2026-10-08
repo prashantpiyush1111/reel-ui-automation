@@ -1,11 +1,11 @@
-from pathlib import Path
+from _bootstrap import REPO_ROOT
 
 from src.template_validator import validate_templates
 from src.templates import REQUIRED_TEMPLATES
 
 
 def main() -> int:
-    errors = validate_templates(Path("templates"), REQUIRED_TEMPLATES)
+    errors = validate_templates(REPO_ROOT / "templates", REQUIRED_TEMPLATES)
 
     if errors:
         print("Template validation failed:")
