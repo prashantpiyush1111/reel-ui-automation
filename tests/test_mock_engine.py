@@ -20,11 +20,44 @@ def test_mock_engine_safe_comment_flow():
     assert ui.typed_text == "demo comment"
     assert workflow.state == State.READY_FOR_MANUAL_POST
 
-    # The mock engine deliberately has no post/submit method.
-    assert not hasattr(engine, "post_comment")
-
     assert engine.close_comments()
     assert workflow.state == State.CLOSE_COMMENT
 
     assert engine.next_reel()
     assert workflow.state == State.NEXT_REEL
+
+
+def test_mock_engine_can_auto_submit_locally():
+    ui = MockUI()
+    workflow = Workflow()
+    engine = MockEngine(ui, SafeController(BotConfig()), workflow)
+
+    assert engine.detect_reel()
+    assert engine.open_comments()
+    assert engine.prepare_comment("local comment")
+    assert engine.post_comment()
+
+    assert ui.submitted_comments == ["local comment"]
+    assert ui.typed_text == ""
+
+    assert engine.close_comments()
+    assert engine.next_reel()
+
+
+def test_mock_engine_runs_four_local_reels():
+    ui = MockUI()
+    workflow = Workflow()
+    engine = MockEngine(ui, SafeController(BotConfig()), workflow)
+
+    comments = ("one", "two", "three", "four")
+    for index, comment in enumerate(comments):
+        assert engine.detect_reel()
+        assert engine.open_comments()
+        assert engine.prepare_comment(comment)
+        assert engine.post_comment()
+        assert engine.close_comments()
+        if index < len(comments) - 1:
+            assert engine.next_reel()
+
+    assert ui.submitted_comments == list(comments)
+    assert ui.reel_number == 4
