@@ -16,13 +16,12 @@ def test_run_defaults_to_dry_run(capsys):
     assert "Safe dry run complete." in output
 
 
-def test_mock_mode_runs_full_safe_flow(capsys):
-    run(config=BotConfig(), mock=True, comments=("Mock comment",))
+def test_mock_mode_runs_four_local_reels(capsys):
+    run(config=BotConfig(), mock=True)
     output = capsys.readouterr().out
-    assert "[OK] reel detection" in output
-    assert "[OK] prepare comment" in output
-    assert "Mock comment" in output
-    assert "no submit action exists" in output
+    assert "[OK] Reel 1:" in output
+    assert "[OK] Reel 4:" in output
+    assert "Automatic submit is local-only" in output
 
 
 def test_live_mode_requires_comment():
