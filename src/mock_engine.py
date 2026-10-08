@@ -7,7 +7,7 @@ from .workflow import State, Workflow
 
 @dataclass
 class MockEngine:
-    """Offline equivalent of the safe workflow engine for integration tests."""
+    """Offline equivalent of the safe workflow engine for local-only integration tests."""
 
     ui: MockUI
     controller: SafeController
@@ -53,6 +53,18 @@ class MockEngine:
         self.click(match)
         self.type_text(text)
         self.workflow.transition(State.READY_FOR_MANUAL_POST)
+        return True
+
+    def post_comment(self) -> bool:
+        if self.controller.stopped:
+            return False
+        self.controller.wait_if_paused()
+        if self.controller.stopped:
+            return False
+        if not self.ui.comments_open or not self.ui.input_focused:
+            return False
+
+        self.ui.submit_comment()
         return True
 
     def close_comments(self) -> bool:
