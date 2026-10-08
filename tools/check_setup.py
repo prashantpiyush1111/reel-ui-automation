@@ -1,7 +1,7 @@
 import importlib
 
 
-REQUIRED = ("cv2", "pyautogui", "PIL", "numpy")
+REQUIRED = ("cv2", "pyautogui", "PIL", "numpy", "keyboard")
 
 
 def main() -> None:
