@@ -16,12 +16,21 @@ def test_run_defaults_to_dry_run(capsys):
     assert "Safe dry run complete." in output
 
 
-def test_mock_mode_runs_four_local_reels(capsys):
+def test_mock_mode_runs_four_comments_on_one_reel(capsys):
     run(config=BotConfig(), mock=True)
     output = capsys.readouterr().out
-    assert "[OK] Reel 1:" in output
-    assert "[OK] Reel 4:" in output
+    assert "[OK] Reel 1, comment 1:" in output
+    assert "[OK] Reel 1, comment 4:" in output
     assert "Automatic submit is local-only" in output
+
+
+def test_mock_mode_groups_eight_comments_into_two_reels(capsys):
+    comments = tuple(f"comment {index}" for index in range(1, 9))
+    run(config=BotConfig(), comments=comments, mock=True)
+    output = capsys.readouterr().out
+    assert "[OK] Reel 1, comment 4:" in output
+    assert "[OK] Reel 2, comment 1:" in output
+    assert "[OK] Reel 2, comment 4:" in output
 
 
 def test_live_mode_requires_comment():
