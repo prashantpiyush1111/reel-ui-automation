@@ -16,14 +16,39 @@ The implementation is designed for a Windows desktop with common display resolut
 
 ## Safety boundary
 
-The live workflow intentionally stops at a **manual-post checkpoint** after preparing comment text. There is no automatic comment-submit/post action.
+The live workflow intentionally stops at a **manual-post checkpoint** after preparing comment text. There is no automatic comment-submit/post action in the live workflow.
 
-The offline mock workflow exercises the complete safe state flow without touching a real website.
+The offline mock workflow supports automatic local submission for testing the full state sequence without touching a real website or posting anywhere.
+
+## Mock comment flow
+
+The mock groups comments in batches of four:
+
+**One Reel → open comments → comment 1 → comment 2 → comment 3 → comment 4 → close comments → next Reel**
+
+For example, eight supplied comments are processed as:
+
+- Reel 1 → comments 1–4
+- Reel 2 → comments 5–8
+
+Run the default local demo:
+
+```powershell
+python run.py --mock
+```
+
+Run custom comments:
+
+```powershell
+python run.py --mock --comment "Nice reel" --comment "Amazing" --comment "Great content" --comment "Loved it" --comment "Next reel comment 1" --comment "Next reel comment 2" --comment "Next reel comment 3" --comment "Next reel comment 4"
+```
+
+The mock auto-submit is local-only and never connects to a real platform.
 
 ## Controls
 
 - **F8** — pause/resume the live workflow
-- **F9** — stop the workflow
+- **F9** — stop the live workflow
 
 ## Tech Stack
 
@@ -44,7 +69,7 @@ The project has a tested workflow foundation with:
 - recovery handling and F8/F9 controls
 - Windows DPI-awareness setup
 - template validation and calibration/probe tools
-- offline mock integration coverage
+- offline mock integration coverage, including four comments per Reel
 - GitHub Actions CI with the existing test suite
 
 Real UI templates are intentionally kept separate from the code and must be captured on the Windows machine where the workflow will run.
@@ -62,10 +87,10 @@ python tools/diagnose.py
 python tools/dry_run.py
 ```
 
-Run the offline workflow without posting anything:
+Run the offline workflow:
 
 ```powershell
-python run.py --mock --comment "Demo comment"
+python run.py --mock
 ```
 
 Capture and validate real UI templates:
