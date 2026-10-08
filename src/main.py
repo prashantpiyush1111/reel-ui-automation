@@ -4,7 +4,10 @@ from .config import BotConfig
 from .controller import SafeController
 from .dry_run import DryRun
 from .logger import configure_logging
+from .mock_engine import MockEngine
+from .mock_ui import MockUI
 from .settings import load_config
+from .workflow import Workflow
 from .workflow_engine import WorkflowEngine
 
 
@@ -13,6 +16,7 @@ def build_parser() -> argparse.ArgumentParser:
         description="Safe Reel UI workflow runner (manual-post checkpoint)."
     )
     parser.add_argument("--live", action="store_true", help="Enable live screen/UI interaction.")
+    parser.add_argument("--mock", action="store_true", help="Run the complete workflow against the offline mock UI.")
     parser.add_argument("--config", default=None, help="Optional JSON config file.")
     parser.add_argument(
         "--comment",
@@ -54,13 +58,41 @@ def run_cycle(engine: WorkflowEngine, comments: tuple[str, ...]) -> bool:
     return engine.next_reel()
 
 
+def run_mock(comment: str = "Demo comment") -> None:
+    ui = MockUI()
+    workflow = Workflow()
+    engine = MockEngine(ui, SafeController(BotConfig()), workflow)
+
+    steps = [
+        ("reel detection", engine.detect_reel),
+        ("open comments", engine.open_comments),
+        ("prepare comment", lambda: engine.prepare_comment(comment)),
+        ("close comments", engine.close_comments),
+        ("next reel", engine.next_reel),
+    ]
+
+    print("Offline mock workflow")
+    for label, action in steps:
+        if not action():
+            raise RuntimeError(f"Mock step failed: {label}")
+        print(f"[OK] {label}: {workflow.state.name}")
+
+    print(f"Typed text: {ui.typed_text!r}")
+    print("Manual-post checkpoint respected; no submit action exists.")
+
+
 def run(
     config: BotConfig | None = None,
     comments: tuple[str, ...] = (),
     live: bool = False,
     once: bool = False,
+    mock: bool = False,
 ) -> None:
     configure_logging()
+
+    if mock:
+        run_mock(comments[0] if comments else "Demo comment")
+        return
 
     if not live:
         visited = DryRun(config or BotConfig()).execute()
@@ -97,6 +129,9 @@ def main() -> None:
     parser = build_parser()
     args = parser.parse_args()
 
+    if args.live and args.mock:
+        parser.error("--live and --mock cannot be used together.")
+
     config = load_config(args.config)
     comments = tuple(args.comment)
 
@@ -105,6 +140,7 @@ def main() -> None:
         comments=comments,
         live=args.live,
         once=args.once,
+        mock=args.mock,
     )
 
 
