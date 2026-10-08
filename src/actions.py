@@ -2,6 +2,7 @@ from typing import Protocol
 
 from .controller import SafeController
 from .detector import Match
+from .screen import configure_dpi_awareness
 
 
 class ClipboardBackend(Protocol):
@@ -19,6 +20,7 @@ class UIActions:
         clipboard_backend: ClipboardBackend | None = None,
         pyautogui_backend=None,
     ):
+        configure_dpi_awareness()
         self.controller = controller
         self._clipboard = clipboard_backend
         self._pyautogui = pyautogui_backend
