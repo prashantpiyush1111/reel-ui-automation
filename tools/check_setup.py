@@ -1,7 +1,9 @@
 import importlib
 
+from _bootstrap import REPO_ROOT
 
-REQUIRED = ("cv2", "pyautogui", "PIL", "numpy", "keyboard")
+
+REQUIRED = ("cv2", "pyautogui", "PIL", "numpy", "keyboard", "pyperclip")
 
 
 def main() -> None:
@@ -18,6 +20,7 @@ def main() -> None:
         raise SystemExit(1)
 
     print("Python dependencies: OK")
+    print(f"Repository root: {REPO_ROOT}")
     print("Environment is ready for the next UI test stage.")
 
 
