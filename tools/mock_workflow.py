@@ -9,23 +9,35 @@ def main() -> None:
     ui = MockUI()
     workflow = Workflow()
     engine = MockEngine(ui, SafeController(BotConfig()), workflow)
+    comments = (
+        "Demo comment 1",
+        "Demo comment 2",
+        "Demo comment 3",
+        "Demo comment 4",
+    )
 
-    steps = [
-        ("reel detection", engine.detect_reel),
-        ("open comments", engine.open_comments),
-        ("prepare comment", lambda: engine.prepare_comment("Demo comment")),
-        ("close comments", engine.close_comments),
-        ("next reel", engine.next_reel),
-    ]
+    print("Offline automatic Reel workflow demo")
+    for reel_number, comment in enumerate(comments, start=1):
+        steps = (
+            ("reel detection", engine.detect_reel),
+            ("open comments", engine.open_comments),
+            ("prepare comment", lambda text=comment: engine.prepare_comment(text)),
+            ("auto submit (local mock)", engine.post_comment),
+            ("close comments", engine.close_comments),
+        )
 
-    print("Offline workflow integration demo")
-    for label, action in steps:
-        if not action():
-            raise SystemExit(f"Step failed: {label}")
-        print(f"[OK] {label}: {workflow.state.name}")
+        for label, action in steps:
+            if not action():
+                raise SystemExit(f"Step failed on reel {reel_number}: {label}")
+            print(f"[OK] Reel {reel_number} | {label}: {workflow.state.name}")
 
-    print(f"Typed text: {ui.typed_text!r}")
-    print("Manual-post checkpoint was respected: no submit action exists.")
+        if reel_number < len(comments):
+            if not engine.next_reel():
+                raise SystemExit(f"Step failed on reel {reel_number}: next reel")
+            print(f"[OK] Reel {reel_number} | next reel: {ui.reel_number}")
+
+    print(f"Submitted locally: {ui.submitted_comments!r}")
+    print("Local mock only: automatic submit is not connected to any real platform.")
 
 
 if __name__ == "__main__":
