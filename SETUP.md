@@ -28,10 +28,39 @@ python tools/diagnose.py
 python tools/dry_run.py
 ```
 
-## 5. Capture a UI template
+## 5. Capture UI templates
 
 ```powershell
 python tools/capture_template.py
 ```
 
+Required names are:
+
+- `reel_marker.png`
+- `comment_button.png`
+- `comment_input.png`
+- `close_comment.png`
+
+After capturing templates, validate them:
+
+```powershell
+python tools/validate_templates.py
+```
+
 Templates should be tightly cropped and must not contain credentials, private messages, or other sensitive information.
+
+## 6. Probe a template
+
+Once a real template exists, test screen detection without performing a workflow action:
+
+```powershell
+python tools/probe_template.py comment_button.png
+```
+
+A successful probe reports the detected position, size, center, and confidence.
+
+## Resolution and DPI notes
+
+The detector uses multi-scale template matching rather than a single fixed coordinate. For best results, capture templates on the Windows display/scaling configuration where the project will run.
+
+If the display scaling changes significantly, recapture the small UI templates rather than using a large screenshot of the entire interface.
