@@ -1,8 +1,6 @@
 import threading
 import time
 
-import pyautogui
-
 from .config import BotConfig
 
 
@@ -46,4 +44,6 @@ class SafeController:
         self.wait_if_paused()
         if self.stopped:
             return
+        import pyautogui
+
         pyautogui.scroll(self.config.scroll_amount)
