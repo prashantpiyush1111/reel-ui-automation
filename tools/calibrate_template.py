@@ -1,5 +1,6 @@
 import argparse
-from pathlib import Path
+
+from _bootstrap import REPO_ROOT
 
 from src.calibration_probe import probe_current_screen
 
@@ -12,7 +13,7 @@ def main() -> int:
     args = parser.parse_args()
 
     try:
-        result = probe_current_screen(Path("templates"), args.template)
+        result = probe_current_screen(REPO_ROOT / "templates", args.template)
     except FileNotFoundError as exc:
         print(exc)
         return 1
