@@ -44,20 +44,41 @@ def test_mock_engine_can_auto_submit_locally():
     assert engine.next_reel()
 
 
-def test_mock_engine_runs_four_local_reels():
+def test_mock_engine_runs_four_comments_on_one_reel():
     ui = MockUI()
     workflow = Workflow()
     engine = MockEngine(ui, SafeController(BotConfig()), workflow)
 
     comments = ("one", "two", "three", "four")
-    for index, comment in enumerate(comments):
-        assert engine.detect_reel()
-        assert engine.open_comments()
+    assert engine.detect_reel()
+    assert engine.open_comments()
+
+    for comment in comments:
         assert engine.prepare_comment(comment)
         assert engine.post_comment()
+
+    assert engine.close_comments()
+    assert ui.submitted_comments == list(comments)
+    assert ui.reel_number == 1
+
+
+def test_mock_engine_runs_two_reels_with_four_comments_each():
+    ui = MockUI()
+    workflow = Workflow()
+    engine = MockEngine(ui, SafeController(BotConfig()), workflow)
+
+    comments = tuple(f"comment {index}" for index in range(1, 9))
+    for reel_index in range(2):
+        assert engine.detect_reel()
+        assert engine.open_comments()
+
+        for comment in comments[reel_index * 4 : (reel_index + 1) * 4]:
+            assert engine.prepare_comment(comment)
+            assert engine.post_comment()
+
         assert engine.close_comments()
-        if index < len(comments) - 1:
+        if reel_index == 0:
             assert engine.next_reel()
 
     assert ui.submitted_comments == list(comments)
-    assert ui.reel_number == 4
+    assert ui.reel_number == 2
