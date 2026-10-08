@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import cv2
+import numpy as np
 
 from .screen import ScreenFrame
 
@@ -55,6 +56,71 @@ class TemplateDetector:
         self.scales = scales or self.DEFAULT_SCALES
         self.min_margin = max(0.0, min_margin)
 
+    @staticmethod
+    def _same_location(first: Match, second: Match) -> bool:
+        """Treat nearby scale variants as the same physical match."""
+        first_center = first.center
+        second_center = second.center
+        x_limit = max(first.width, second.width) / 2
+        y_limit = max(first.height, second.height) / 2
+        return (
+            abs(first_center[0] - second_center[0]) <= x_limit
+            and abs(first_center[1] - second_center[1]) <= y_limit
+        )
+
+    def _add_candidate(self, candidates: list[Match], candidate: Match) -> None:
+        """Keep the strongest scale for each physical location."""
+        for index, existing in enumerate(candidates):
+            if self._same_location(existing, candidate):
+                if candidate.confidence > existing.confidence:
+                    candidates[index] = candidate
+                return
+        candidates.append(candidate)
+
+    def _scale_candidates(
+        self,
+        source: np.ndarray,
+        template_name: str,
+        template: np.ndarray,
+        scale: float,
+        search: Region,
+    ) -> list[Match]:
+        width = max(1, int(template.shape[1] * scale))
+        height = max(1, int(template.shape[0] * scale))
+
+        if width > source.shape[1] or height > source.shape[0]:
+            return []
+
+        interpolation = cv2.INTER_AREA if scale < 1.0 else cv2.INTER_CUBIC
+        resized = cv2.resize(template, (width, height), interpolation=interpolation)
+        result = cv2.matchTemplate(source, resized, cv2.TM_CCOEFF_NORMED)
+
+        kernel_width = max(3, width // 2)
+        kernel_height = max(3, height // 2)
+        kernel = np.ones((kernel_height, kernel_width), dtype=np.uint8)
+        local_max = cv2.dilate(result, kernel)
+        peak_mask = (result >= self.confidence) & (
+            result >= local_max - 1e-6
+        )
+        locations = np.argwhere(peak_mask)
+
+        matches: list[Match] = []
+        for row, column in locations:
+            matches.append(
+                Match(
+                    template_name,
+                    int(column + search.x),
+                    int(row + search.y),
+                    width,
+                    height,
+                    float(result[row, column]),
+                    scale,
+                )
+            )
+
+        matches.sort(key=lambda item: item.confidence, reverse=True)
+        return matches
+
     def find(
         self,
         frame: ScreenFrame,
@@ -81,30 +147,10 @@ class TemplateDetector:
             if scale <= 0:
                 continue
 
-            width = max(1, int(template.shape[1] * scale))
-            height = max(1, int(template.shape[0] * scale))
-
-            if width > source.shape[1] or height > source.shape[0]:
-                continue
-
-            interpolation = cv2.INTER_AREA if scale < 1.0 else cv2.INTER_CUBIC
-            resized = cv2.resize(template, (width, height), interpolation=interpolation)
-
-            result = cv2.matchTemplate(source, resized, cv2.TM_CCOEFF_NORMED)
-            _, score, _, location = cv2.minMaxLoc(result)
-
-            if score >= self.confidence:
-                candidates.append(
-                    Match(
-                        template_name,
-                        int(location[0] + search.x),
-                        int(location[1] + search.y),
-                        width,
-                        height,
-                        float(score),
-                        scale,
-                    )
-                )
+            for candidate in self._scale_candidates(
+                source, template_name, template, scale, search
+            ):
+                self._add_candidate(candidates, candidate)
 
         if not candidates:
             return None
