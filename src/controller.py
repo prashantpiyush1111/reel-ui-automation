@@ -5,8 +5,8 @@ from .config import BotConfig
 
 
 class SafeController:
-    def __init__(self, config: BotConfig):
-        self.config = config
+    def __init__(self, config: BotConfig | None = None):
+        self.config = config or BotConfig()
         self._lock = threading.RLock()
         self._paused = False
         self._stopped = False
