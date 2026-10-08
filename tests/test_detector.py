@@ -80,3 +80,42 @@ def test_region_is_clamped():
     region = Region(-10, -5, 200, 150).clamp(frame)
 
     assert region == Region(0, 0, 120, 100)
+
+
+def test_detector_groups_neighbouring_scales_for_one_element(tmp_path: Path):
+    rng = np.random.default_rng(7)
+    template = rng.integers(0, 256, (18, 24, 3), dtype=np.uint8)
+    scaled = cv2.resize(template, (int(24 * 1.05), int(18 * 1.05)), interpolation=cv2.INTER_CUBIC)
+
+    source = np.zeros((90, 110, 3), dtype=np.uint8)
+    source[32:51, 43:69] = scaled
+
+    path = tmp_path / "marker.png"
+    cv2.imwrite(str(path), template)
+
+    frame = ScreenFrame(source, 110, 90)
+    detector = TemplateDetector(tmp_path, confidence=0.9)
+
+    match = detector.find(frame, "marker.png")
+
+    assert match is not None
+    assert abs(match.center[0] - 56) <= 2
+    assert abs(match.center[1] - 41) <= 2
+    assert match.scale in TemplateDetector.DEFAULT_SCALES
+
+
+def test_detector_rejects_two_distinct_locations(tmp_path: Path):
+    rng = np.random.default_rng(11)
+    template = rng.integers(0, 256, (16, 20, 3), dtype=np.uint8)
+
+    source = np.zeros((100, 140, 3), dtype=np.uint8)
+    source[20:36, 15:35] = template
+    source[60:76, 95:115] = template
+
+    path = tmp_path / "marker.png"
+    cv2.imwrite(str(path), template)
+
+    frame = ScreenFrame(source, 140, 100)
+    detector = TemplateDetector(tmp_path, confidence=0.9, min_margin=0.02)
+
+    assert detector.find(frame, "marker.png") is None
