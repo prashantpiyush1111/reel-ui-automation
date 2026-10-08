@@ -16,13 +16,17 @@ def build_parser() -> argparse.ArgumentParser:
         description="Reel UI workflow runner with a local-only automatic mock."
     )
     parser.add_argument("--live", action="store_true", help="Enable live screen/UI interaction.")
-    parser.add_argument("--mock", action="store_true", help="Run the automatic workflow against the offline mock UI.")
+    parser.add_argument(
+        "--mock",
+        action="store_true",
+        help="Run the automatic workflow against the offline mock UI.",
+    )
     parser.add_argument("--config", default=None, help="Optional JSON config file.")
     parser.add_argument(
         "--comment",
         action="append",
         default=[],
-        help="Comment text to prepare. Repeat the flag for multiple predefined comments.",
+        help="Comment text to prepare. Repeat the flag; every 4 comments belong to one mock Reel.",
     )
     parser.add_argument(
         "--once",
@@ -58,33 +62,53 @@ def run_cycle(engine: WorkflowEngine, comments: tuple[str, ...]) -> bool:
     return engine.next_reel()
 
 
+def _group_comments(comments: tuple[str, ...], per_reel: int = 4) -> tuple[tuple[str, ...], ...]:
+    if not comments:
+        return ()
+
+    return tuple(
+        comments[index : index + per_reel]
+        for index in range(0, len(comments), per_reel)
+    )
+
+
 def run_mock(comments: tuple[str, ...] = ()) -> None:
     ui = MockUI()
     workflow = Workflow()
     engine = MockEngine(ui, SafeController(BotConfig()), workflow)
+
     demo_comments = comments or (
         "Demo comment 1",
         "Demo comment 2",
         "Demo comment 3",
         "Demo comment 4",
     )
+    reel_comment_groups = _group_comments(demo_comments)
 
-    for reel_number, comment in enumerate(demo_comments, start=1):
+    for reel_number, reel_comments in enumerate(reel_comment_groups, start=1):
         if not engine.detect_reel():
             raise RuntimeError(f"Mock reel {reel_number}: detection failed")
         if not engine.open_comments():
             raise RuntimeError(f"Mock reel {reel_number}: comments failed")
-        if not engine.prepare_comment(comment):
-            raise RuntimeError(f"Mock reel {reel_number}: input failed")
-        if not engine.post_comment():
-            raise RuntimeError(f"Mock reel {reel_number}: local submit failed")
 
-        print(f"[OK] Reel {reel_number}: submitted {comment!r} locally")
+        for comment_number, comment in enumerate(reel_comments, start=1):
+            if not engine.prepare_comment(comment):
+                raise RuntimeError(
+                    f"Mock reel {reel_number}, comment {comment_number}: input failed"
+                )
+            if not engine.post_comment():
+                raise RuntimeError(
+                    f"Mock reel {reel_number}, comment {comment_number}: local submit failed"
+                )
+            print(
+                f"[OK] Reel {reel_number}, comment {comment_number}: "
+                f"submitted {comment!r} locally"
+            )
 
         if not engine.close_comments():
             raise RuntimeError(f"Mock reel {reel_number}: close failed")
 
-        if reel_number < len(demo_comments) and not engine.next_reel():
+        if reel_number < len(reel_comment_groups) and not engine.next_reel():
             raise RuntimeError(f"Mock reel {reel_number}: next reel failed")
 
     print(f"Local mock submissions: {ui.submitted_comments!r}")
