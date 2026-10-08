@@ -1,9 +1,12 @@
 import logging
 import time
 from dataclasses import dataclass
+from typing import Callable, TypeVar
 
 from .controller import SafeController
 from .workflow import State, Workflow
+
+T = TypeVar("T")
 
 
 @dataclass(frozen=True)
@@ -27,11 +30,17 @@ class RecoveryManager:
         self.policy = policy or RecoveryPolicy()
         self.logger = logger or logging.getLogger(__name__)
 
-    def run_with_recovery(self, operation, description: str):
+    def run_with_recovery(
+        self,
+        operation: Callable[[], T | None],
+        description: str,
+    ) -> T | None:
         delay = max(0.0, self.policy.initial_delay_seconds)
+        attempts = max(1, self.policy.attempts)
 
-        for attempt in range(1, self.policy.attempts + 1):
+        for attempt in range(1, attempts + 1):
             if self.controller.stopped:
+                self.logger.info("Recovery cancelled because controller is stopped")
                 return None
 
             try:
@@ -41,7 +50,7 @@ class RecoveryManager:
                     "%s failed on attempt %d/%d: %s",
                     description,
                     attempt,
-                    self.policy.attempts,
+                    attempts,
                     exc,
                 )
                 result = None
@@ -51,13 +60,14 @@ class RecoveryManager:
                     self.logger.info("%s recovered on attempt %d", description, attempt)
                 return result
 
-            if attempt < self.policy.attempts:
+            if attempt < attempts:
                 self.logger.info(
                     "%s not ready; retrying in %.2fs",
                     description,
                     delay,
                 )
-                time.sleep(delay)
+                if delay > 0:
+                    time.sleep(delay)
                 delay = min(
                     self.policy.max_delay_seconds,
                     delay * max(1.0, self.policy.backoff),
@@ -67,7 +77,10 @@ class RecoveryManager:
         return None
 
     def handle_missing_element(self, description: str = "UI element"):
-        self.logger.warning("Unable to recover %s; returning to safe waiting state", description)
+        self.logger.warning(
+            "Unable to recover %s; returning to safe waiting state",
+            description,
+        )
         self.workflow.transition(State.WAITING_FOR_REEL)
 
     def fail_safe(self, reason: str = "unrecoverable workflow error"):
