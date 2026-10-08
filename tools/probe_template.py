@@ -1,5 +1,7 @@
 import argparse
 
+from _bootstrap import REPO_ROOT
+
 from src.config import BotConfig
 from src.detection_service import DetectionService
 from src.logger import configure_logging
