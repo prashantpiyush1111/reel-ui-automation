@@ -6,6 +6,7 @@
 - Run commands from the repository root.
 - Instagram/Reels UI templates must be captured from the actual Windows display configuration being used.
 - The live workflow does **not** submit/post comments automatically.
+- The offline mock may automatically submit comments only inside the local mock UI.
 
 ## 1. Create the environment
 
@@ -44,10 +45,23 @@ python tools/dry_run.py
 For the integrated mock workflow:
 
 ```powershell
-python run.py --mock --comment "Demo comment"
+python run.py --mock
 ```
 
-The mock flow detects a Reel, opens comments, prepares text, reaches the manual-post checkpoint, closes comments, and moves to the next Reel. It has no submit action.
+The mock flow groups comments in batches of four:
+
+1. Detect Reel.
+2. Open comments.
+3. Automatically submit comment 1 locally.
+4. Automatically submit comment 2 locally.
+5. Automatically submit comment 3 locally.
+6. Automatically submit comment 4 locally.
+7. Close comments.
+8. Move to the next mock Reel.
+
+With eight comments, comments 1–4 belong to Reel 1 and comments 5–8 belong to Reel 2.
+
+The mock submission is local-only and never touches a real website.
 
 ## 5. Capture UI templates
 
