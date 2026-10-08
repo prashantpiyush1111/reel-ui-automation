@@ -13,10 +13,10 @@ from .workflow_engine import WorkflowEngine
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Safe Reel UI workflow runner (manual-post checkpoint)."
+        description="Reel UI workflow runner with a local-only automatic mock."
     )
     parser.add_argument("--live", action="store_true", help="Enable live screen/UI interaction.")
-    parser.add_argument("--mock", action="store_true", help="Run the complete workflow against the offline mock UI.")
+    parser.add_argument("--mock", action="store_true", help="Run the automatic workflow against the offline mock UI.")
     parser.add_argument("--config", default=None, help="Optional JSON config file.")
     parser.add_argument(
         "--comment",
@@ -58,32 +58,37 @@ def run_cycle(engine: WorkflowEngine, comments: tuple[str, ...]) -> bool:
     return engine.next_reel()
 
 
-def run_mock(comment: str = "Demo comment") -> None:
+def run_mock(comments: tuple[str, ...] = ()) -> None:
     ui = MockUI()
     workflow = Workflow()
     engine = MockEngine(ui, SafeController(BotConfig()), workflow)
+    demo_comments = comments or (
+        "Demo comment 1",
+        "Demo comment 2",
+        "Demo comment 3",
+        "Demo comment 4",
+    )
 
-    if not engine.detect_reel():
-        raise RuntimeError("Mock step failed: reel detection")
-    print(f"[OK] reel detection: {workflow.state.name}")
+    for reel_number, comment in enumerate(demo_comments, start=1):
+        if not engine.detect_reel():
+            raise RuntimeError(f"Mock reel {reel_number}: detection failed")
+        if not engine.open_comments():
+            raise RuntimeError(f"Mock reel {reel_number}: comments failed")
+        if not engine.prepare_comment(comment):
+            raise RuntimeError(f"Mock reel {reel_number}: input failed")
+        if not engine.post_comment():
+            raise RuntimeError(f"Mock reel {reel_number}: local submit failed")
 
-    if not engine.open_comments():
-        raise RuntimeError("Mock step failed: open comments")
-    print(f"[OK] open comments: {workflow.state.name}")
+        print(f"[OK] Reel {reel_number}: submitted {comment!r} locally")
 
-    if not engine.prepare_comment(comment):
-        raise RuntimeError("Mock step failed: prepare comment")
-    print(f"[OK] prepare comment: {workflow.state.name}")
-    print(f"Prepared text: {ui.typed_text!r}")
-    print("Manual-post checkpoint reached; no submit action exists.")
+        if not engine.close_comments():
+            raise RuntimeError(f"Mock reel {reel_number}: close failed")
 
-    if not engine.close_comments():
-        raise RuntimeError("Mock step failed: close comments")
-    print(f"[OK] close comments: {workflow.state.name}")
+        if reel_number < len(demo_comments) and not engine.next_reel():
+            raise RuntimeError(f"Mock reel {reel_number}: next reel failed")
 
-    if not engine.next_reel():
-        raise RuntimeError("Mock step failed: next reel")
-    print(f"[OK] next reel: {workflow.state.name}")
+    print(f"Local mock submissions: {ui.submitted_comments!r}")
+    print("Automatic submit is local-only and is not connected to any real platform.")
 
 
 def run(
@@ -96,7 +101,7 @@ def run(
     configure_logging()
 
     if mock:
-        run_mock(comments[0] if comments else "Demo comment")
+        run_mock(comments)
         return
 
     if not live:
