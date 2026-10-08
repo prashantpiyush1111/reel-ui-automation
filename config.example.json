@@ -1,0 +1,7 @@
+{
+  "confidence": 0.78,
+  "action_timeout_seconds": 5.0,
+  "retry_delay_seconds": 0.35,
+  "loop_delay_seconds": 1.0,
+  "scroll_amount": -6
+}
