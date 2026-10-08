@@ -17,7 +17,6 @@ class DryRun:
             State.WAITING_FOR_REEL,
             State.REEL_VISIBLE,
             State.COMMENT_OPEN,
-            State.COMMENT_READY,
             State.READY_FOR_MANUAL_POST,
             State.CLOSE_COMMENT,
             State.NEXT_REEL,
