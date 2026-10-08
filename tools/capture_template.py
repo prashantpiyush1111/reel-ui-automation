@@ -1,13 +1,25 @@
-from pathlib import Path
+import argparse
 
 import pyautogui
 
+from _bootstrap import REPO_ROOT
+
 
 def main() -> None:
-    output = Path("templates")
+    parser = argparse.ArgumentParser(description="Capture a tightly cropped UI template.")
+    parser.add_argument(
+        "name",
+        nargs="?",
+        help="Template filename, for example reel_marker.png",
+    )
+    args = parser.parse_args()
+
+    output = REPO_ROOT / "templates"
     output.mkdir(exist_ok=True)
 
-    name = input("Template filename (for example comment_button.png): ").strip()
+    name = args.name or input(
+        "Template filename (for example comment_button.png): "
+    ).strip()
     if not name:
         raise SystemExit("A filename is required.")
 
