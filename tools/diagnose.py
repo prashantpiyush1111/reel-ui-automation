@@ -1,3 +1,5 @@
+from _bootstrap import REPO_ROOT
+
 from src.diagnostics import print_screen_info
 
 
