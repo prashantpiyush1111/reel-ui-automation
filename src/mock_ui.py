@@ -1,16 +1,18 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from .detector import Match
 
 
 @dataclass
 class MockUI:
-    """Deterministic UI surface used for offline workflow tests."""
+    """Deterministic local Reel-like UI used for offline workflow tests."""
 
     visible: bool = True
     comments_open: bool = False
     input_focused: bool = False
     typed_text: str = ""
+    submitted_comments: list[str] = field(default_factory=list)
+    reel_number: int = 1
 
     def locate(self, template_name: str) -> Match | None:
         if not self.visible:
@@ -44,7 +46,17 @@ class MockUI:
             raise RuntimeError("Mock input is not focused")
         self.typed_text += text
 
+    def submit_comment(self) -> None:
+        if not self.comments_open or not self.input_focused:
+            raise RuntimeError("Mock comment input is not ready")
+        if not self.typed_text:
+            raise RuntimeError("Mock comment is empty")
+        self.submitted_comments.append(self.typed_text)
+        self.typed_text = ""
+        self.input_focused = False
+
     def scroll(self) -> None:
         self.typed_text = ""
         self.comments_open = False
         self.input_focused = False
+        self.reel_number += 1
