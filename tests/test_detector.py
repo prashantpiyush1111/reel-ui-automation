@@ -3,7 +3,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-from src.detector import TemplateDetector
+from src.detector import Region, TemplateDetector
 from src.screen import ScreenFrame
 
 
@@ -51,3 +51,32 @@ def test_detector_supports_custom_scales(tmp_path: Path):
     assert match.scale == 1.5
     assert match.x == 25
     assert match.y == 20
+
+
+def test_detector_applies_roi(tmp_path: Path):
+    template = np.zeros((10, 10, 3), dtype=np.uint8)
+    template[2:8, 2:8] = 255
+
+    source = np.zeros((80, 100, 3), dtype=np.uint8)
+    source[10:20, 10:20] = template
+    source[50:60, 70:80] = template
+
+    path = tmp_path / "marker.png"
+    cv2.imwrite(str(path), template)
+
+    frame = ScreenFrame(source, 100, 80)
+    detector = TemplateDetector(tmp_path, confidence=0.9, scales=(1.0,))
+
+    match = detector.find(frame, "marker.png", Region(60, 40, 40, 40))
+
+    assert match is not None
+    assert match.x == 70
+    assert match.y == 50
+
+
+def test_region_is_clamped():
+    frame = ScreenFrame(np.zeros((100, 120, 3), dtype=np.uint8), 120, 100)
+
+    region = Region(-10, -5, 200, 150).clamp(frame)
+
+    assert region == Region(0, 0, 120, 100)
