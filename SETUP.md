@@ -64,3 +64,14 @@ A successful probe reports the detected position, size, center, and confidence.
 The detector uses multi-scale template matching rather than a single fixed coordinate. For best results, capture templates on the Windows display/scaling configuration where the project will run.
 
 If the display scaling changes significantly, recapture the small UI templates rather than using a large screenshot of the entire interface.
+
+
+## 7. Calibrate a template on the current screen
+
+Calibration only captures the current screen and measures template matching. It does not click, scroll, type, or submit anything.
+
+```powershell
+python tools/calibrate_template.py comment_button.png
+```
+
+The report shows the best detected scale, confidence, position, and match size.
