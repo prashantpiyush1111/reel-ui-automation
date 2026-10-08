@@ -63,22 +63,27 @@ def run_mock(comment: str = "Demo comment") -> None:
     workflow = Workflow()
     engine = MockEngine(ui, SafeController(BotConfig()), workflow)
 
-    steps = [
-        ("reel detection", engine.detect_reel),
-        ("open comments", engine.open_comments),
-        ("prepare comment", lambda: engine.prepare_comment(comment)),
-        ("close comments", engine.close_comments),
-        ("next reel", engine.next_reel),
-    ]
+    if not engine.detect_reel():
+        raise RuntimeError("Mock step failed: reel detection")
+    print(f"[OK] reel detection: {workflow.state.name}")
 
-    print("Offline mock workflow")
-    for label, action in steps:
-        if not action():
-            raise RuntimeError(f"Mock step failed: {label}")
-        print(f"[OK] {label}: {workflow.state.name}")
+    if not engine.open_comments():
+        raise RuntimeError("Mock step failed: open comments")
+    print(f"[OK] open comments: {workflow.state.name}")
 
-    print(f"Typed text: {ui.typed_text!r}")
-    print("Manual-post checkpoint respected; no submit action exists.")
+    if not engine.prepare_comment(comment):
+        raise RuntimeError("Mock step failed: prepare comment")
+    print(f"[OK] prepare comment: {workflow.state.name}")
+    print(f"Prepared text: {ui.typed_text!r}")
+    print("Manual-post checkpoint reached; no submit action exists.")
+
+    if not engine.close_comments():
+        raise RuntimeError("Mock step failed: close comments")
+    print(f"[OK] close comments: {workflow.state.name}")
+
+    if not engine.next_reel():
+        raise RuntimeError("Mock step failed: next reel")
+    print(f"[OK] next reel: {workflow.state.name}")
 
 
 def run(
